@@ -7,7 +7,7 @@ import {
   archiveProduct,
   softDeleteProduct,
 } from '../../api';
-
+import { resolveAssetImage } from '../../utils/assetResolver';
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -178,32 +178,41 @@ export default function ProductsAdmin() {
         <div>Loading…</div>
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
-          {products.map(p => (
-            <div key={p.id} style={{ padding: 12, borderRadius: 8, background: 'white', boxShadow: 'var(--shadow)', display: 'flex', gap: 12 }}>
-              <div style={{ width: 120, height: 90, borderRadius: 8, overflow: 'hidden', background: '#f1f5f9' }}>
-                {p.images && p.images[0] ? (
-                  <img src={p.images[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : <div style={{ padding: 8, color: '#6b7280' }}>No image</div>}
-              </div>
+          {products.map(p => {
+            const imgSrc = resolveAssetImage(p.images && p.images[0] ? p.images[0] : null, p.category, p.name);
+            return (
+              <div key={p.id} style={{ padding: 12, borderRadius: 8, background: 'white', boxShadow: 'var(--shadow)', display: 'flex', gap: 12 }}>
+                <div style={{ width: 120, height: 90, borderRadius: 8, overflow: 'hidden', background: '#f1f5f9' }}>
+                  <img
+                    src={imgSrc}
+                    alt={p.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = resolveAssetImage(null, p.category, p.name);
+                    }}
+                  />
+                </div>
 
-              <div style={{ flex: 1 }}>
-                <h4 style={{ margin: '0 0 6px 0' }}>{p.name} {p.isActive === false && <small style={{ color: '#7b1f1f' }}>(archived)</small>}</h4>
-                <div style={{ color: '#6b7280', marginBottom: 8 }}>{p.description}</div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <div style={{ fontWeight: 700 }}>₹{p.price}</div>
-                  <div style={{ color: '#6b7280' }}>{p.count} gm</div>
-                  <div style={{ color: '#6b7280' }}>{p.category}</div>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ margin: '0 0 6px 0' }}>{p.name} {p.isActive === false && <small style={{ color: '#7b1f1f' }}>(archived)</small>}</h4>
+                  <div style={{ color: '#6b7280', marginBottom: 8 }}>{p.description}</div>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{ fontWeight: 700 }}>₹{p.price}</div>
+                    <div style={{ color: '#6b7280' }}>{p.count} gm</div>
+                    <div style={{ color: '#6b7280' }}>{p.category}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                  <button className="btn btn-ghost" onClick={() => setEditing(p)}>Edit</button>
+                  <button className="btn btn-ghost" onClick={() => handleArchive(p.id)} disabled={busyId === p.id}>{busyId === p.id ? 'Working…' : 'Archive'}</button>
+                  <button className="btn btn-ghost" onClick={() => handleSoftDelete(p.id)} disabled={busyId === p.id}>Soft delete</button>
+                  <button className="btn btn-ghost" onClick={() => handleDelete(p.id)} disabled={busyId === p.id} style={{ color: '#9a1f1f' }}>Delete</button>
                 </div>
               </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-                <button className="btn btn-ghost" onClick={() => setEditing(p)}>Edit</button>
-                <button className="btn btn-ghost" onClick={() => handleArchive(p.id)} disabled={busyId === p.id}>{busyId === p.id ? 'Working…' : 'Archive'}</button>
-                <button className="btn btn-ghost" onClick={() => handleSoftDelete(p.id)} disabled={busyId === p.id}>Soft delete</button>
-                <button className="btn btn-ghost" onClick={() => handleDelete(p.id)} disabled={busyId === p.id} style={{ color: '#9a1f1f' }}>Delete</button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
